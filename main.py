@@ -7,13 +7,28 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# ── 한글 폰트 CSS ──────────────────────────────────────────────────────────
+# ── 한글 폰트 CSS + 배경 장식 스타일 ────────────────────────────────────────
 st.markdown(
     """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
 html, body, [class*="css"] {
    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+}
+/* ── 배경 장식 스타일 ─────────────────────────────────────────────────── */
+polar-banner {
+   display: flex;
+   justify-content: center;
+   margin-bottom: 2px;
+}
+polar-svg {
+   width: 100%;
+   max-width: 1100px;
+   height: 100%;
+   max-height: 120px;
+}
+.stApp {
+   background-color: #f5fafe;
 }
 </style>
 """,
@@ -337,6 +352,106 @@ def main():
     st.set_page_config(page_title="극지생육 대시보드", layout="wide")
     st.title("인천여고와 극지연구소의 콜라보레이션! 🌱")
 
+    # ── 상단 배경 장식 (덩굴 + 무지개 + 펭귄·극지) ─────────────────────────
+    st.markdown(
+        """
+<div class="polar-banner">
+  <svg viewBox="0 0 1200 260" preserveAspectRatio="xMidYMid meet" class="polar-svg">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e8f4f8"/>
+        <stop offset="100%" stop-color="#d4eef7"/>
+      </linearGradient>
+      <linearGradient id="ice" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e8f4f8"/>
+        <stop offset="100%" stop-color="#cfe6f0"/>
+      </linearGradient>
+      <radialGradient id="rainbow_glow" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+    <!-- 하늘 배경 -->
+    <rect x="0" y="0" width="1200" height="260" fill="url(#sky)"/>
+
+    <!-- 우측: 덩굴 -->
+    <g stroke-linecap="round" fill="none">
+      <path d="M1100,20 C1095,60 1105,90 1098,130 C1108,165 1093,195 1103,230"
+            stroke="#2e7d32" stroke-width="2.5"/>
+      <path d="M1140,15 C1150,55 1130,85 1148,125 C1135,160 1152,190 1140,225"
+            stroke="#388e3c" stroke-width="2"/>
+      <path d="M1065,30 C1055,65 1070,100 1060,140 C1072,170 1058,200 1070,235"
+            stroke="#1b5e20" stroke-width="2"/>
+      <path d="M1175,40 C1182,75 1168,110 1180,145 C1170,175 1185,205 1178,235"
+            stroke="#2e7d32" stroke-width="1.8"/>
+      <ellipse cx="1098" cy="128" rx="7" ry="4" fill="#4caf50" transform="rotate(-30 1098 128)"/>
+      <ellipse cx="1148" cy="122" rx="7" ry="4" fill="#66bb6a" transform="rotate(25 1148 122)"/>
+      <ellipse cx="1060" cy="138" rx="7" ry="4" fill="#43a047" transform="rotate(-20 1060 138)"/>
+      <ellipse cx="1180" cy="142" rx="6" ry="3.5" fill="#81c784" transform="rotate(15 1180 142)"/>
+      <ellipse cx="1098" cy="168" rx="7" ry="4" fill="#4caf50" transform="rotate(35 1098 168)"/>
+      <ellipse cx="1148" cy="162" rx="6" ry="3.5" fill="#66bb6a" transform="rotate(-25 1148 162)"/>
+      <ellipse cx="1060" cy="178" rx="6.5" ry="3.5" fill="#43a047" transform="rotate(30 1060 178)"/>
+      <ellipse cx="1180" cy="182" rx="6" ry="3" fill="#81c784" transform="rotate(-15 1180 182)"/>
+      <ellipse cx="1103" cy="228" rx="6" ry="3" fill="#4caf50" transform="rotate(20 1103 228)"/>
+      <ellipse cx="1140" cy="222" rx="6" ry="3" fill="#66bb6a" transform="rotate(-30 1140 222)"/>
+      <ellipse cx="1070" cy="232" rx="6" ry="3" fill="#43a047" transform="rotate(25 1070 232)"/>
+      <ellipse cx="1178" cy="232" rx="5.5" ry="3" fill="#81c784" transform="rotate(-20 1178 232)"/>
+    </g>
+
+    <!-- 중앙: 무지개 -->
+    <g>
+      <ellipse cx="600" cy="125" rx="380" ry="100" fill="url(#rainbow_glow)"/>
+      <path d="M225,125 A375,100 0 0,1 975,125" fill="none" stroke="#ef5350" stroke-width="12" stroke-linecap="round"/>
+      <path d="M256,125 A344,92 0 0,1 944,125" fill="none" stroke="#ff8a65" stroke-width="12" stroke-linecap="round"/>
+      <path d="M288,125 A314,84 0 0,1 912,125" fill="none" stroke="#ffc107" stroke-width="12" stroke-linecap="round"/>
+      <path d="M319,125 A284,76 0 0,1 881,125" fill="none" stroke="#cddc39" stroke-width="12" stroke-linecap="round"/>
+      <path d="M350,125 A254,68 0 0,1 850,125" fill="none" stroke="#8bc34a" stroke-width="12" stroke-linecap="round"/>
+      <path d="M381,125 A224,60 0 0,1 819,125" fill="none" stroke="#4caf50" stroke-width="12" stroke-linecap="round"/>
+      <path d="M412,125 A194,52 0 0,1 788,125" fill="none" stroke="#26c6da" stroke-width="12" stroke-linecap="round"/>
+      <path d="M443,125 A164,44 0 0,1 757,125" fill="none" stroke="#42a5f5" stroke-width="12" stroke-linecap="round"/>
+      <path d="M474,125 A134,36 0 0,1 726,125" fill="none" stroke="#7e57c2" stroke-width="12" stroke-linecap="round"/>
+      <path d="M505,125 A104,28 0 0,1 695,125" fill="none" stroke="#e040fb" stroke-width="12" stroke-linecap="round"/>
+      <ellipse cx="470" cy="95" rx="40" ry="14" fill="#ffffff" opacity="0.85"/>
+      <ellipse cx="495" cy="92" rx="28" ry="11" fill="#ffffff" opacity="0.85"/>
+      <ellipse cx="735" cy="95" rx="40" ry="14" fill="#ffffff" opacity="0.85"/>
+      <ellipse cx="710" cy="92" rx="28" ry="11" fill="#ffffff" opacity="0.85"/>
+    </g>
+
+    <!-- 하단 얼음 -->
+    <path d="M0,210 Q100,205 200,212 T420,210 T560,214 T720,210 T880,213 T1050,210 L1200,212 L1200,260 L0,260 Z"
+          fill="url(#ice)" opacity="0.85"/>
+    <path d="M0,225 Q150,222 300,228 T600,225 T900,228 T1200,225 L1200,260 L0,260 Z"
+          fill="#b3dfe5" opacity="0.5"/>
+
+    <!-- 좌측 하단: 펭귄 + 극지 -->
+    <g transform="translate(40, 185)">
+      <path d="M0,25 L40,5 L75,25 Z" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.5"/>
+      <path d="M70,25 L110,8 L150,25 Z" fill="#bbdefb" stroke="#90caf9" stroke-width="1.5"/>
+      <path d="M140,25 L180,12 L220,25 Z" fill="#e3f2fd" stroke="#90caf9" stroke-width="1.5"/>
+      <ellipse cx="100" cy="16" rx="15" ry="12" fill="#212121"/>
+      <ellipse cx="100" cy="16" rx="9" ry="8" fill="#f5f5f5"/>
+      <circle cx="100" cy="4" r="6" fill="#212121"/>
+      <circle cx="97" cy="3" r="1.2" fill="#ffffff"/>
+      <circle cx="103" cy="3" r="1.2" fill="#ffffff"/>
+      <path d="M98,6 L100,8 L102,6 Z" fill="#ff8f00"/>
+      <path d="M86,14 Q80,18 84,20" fill="none" stroke="#212121" stroke-width="2" stroke-linecap="round"/>
+      <path d="M114,14 Q120,18 116,20" fill="none" stroke="#212121" stroke-width="2" stroke-linecap="round"/>
+      <ellipse cx="93" cy="27" rx="4" ry="2" fill="#ff8f00"/>
+      <ellipse cx="107" cy="27" rx="4" ry="2" fill="#ff8f00"/>
+      <circle cx="20" cy="6" r="1" fill="#b3e5fc" opacity="0.7"/>
+      <circle cx="50" cy="10" r="1" fill="#b3e5fc" opacity="0.7"/>
+      <circle cx="130" cy="4" r="1" fill="#b3e5fc" opacity="0.7"/>
+      <circle cx="165" cy="8" r="1" fill="#b3e5fc" opacity="0.7"/>
+      <circle cx="185" cy="14" r="0.8" fill="#b3e5fc" opacity="0.7"/>
+      <circle cx="25" cy="14" r="0.8" fill="#b3e5fc" opacity="0.7"/>
+    </g>
+  </svg>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
     # ── 사이드바 ────────────────────────────────────────────────────────────
     st.sidebar.header("📁 데이터 업로드")
     env_file = st.sidebar.file_uploader("환경 CSV 업로드", type="csv")
@@ -401,7 +516,6 @@ def main():
                 school = env_school or growth_school or "우리 학교"
                 st.markdown(f"### 🏫 분석 대상 학교: {school}")
 
-                # 환경 데이터
                 if not env_df.empty:
                     st.markdown("---")
                     st.markdown("### 🌡️ 스마트팜 환경 데이터 요약")
@@ -437,7 +551,6 @@ def main():
                     else:
                         st.info("날짜별 변화를 그릴 수 있는 데이터가 충분하지 않아요.")
 
-                # 생육 데이터 요약
                 if not growth_df.empty:
                     st.markdown("---")
                     st.markdown("### 🌿 생육 결과 데이터 요약")
@@ -480,7 +593,6 @@ def main():
             if growth_df.empty:
                 st.info("📎 사이드바에서 생육 결과 CSV를 업로드하면 분석 결과가 나타나요.")
             else:
-                # 생중량 히스토그램
                 st.markdown("### 📊 개체별 생중량 분포")
                 fig_hist = make_weight_hist(growth_df)
                 if fig_hist is not None:
@@ -490,7 +602,6 @@ def main():
                         "⚠️ 생중량 열이 없거나 값이 충분하지 않아 히스토그램을 그릴 수 없어요."
                     )
 
-                # 평균·표준편차·변동계수 카드
                 st.markdown("### 📏 생육 지표별 평균·표준편차·변동계수")
                 st.info(
                     "• **평균**: 모든 개체 값을 더해 개수로 나눈 값  "
@@ -524,7 +635,6 @@ def main():
                 else:
                     st.info("⚠️ 표시할 생육 지표 열이 없어요.")
 
-                # 상위·하위 25% 비교 막대그래프
                 st.markdown("### 🔬 생중량 상위 25% vs 하위 25% 비교")
                 st.info(
                     "생중량이 무거운 상위 25% 개체와 가벼운 하위 25% 개체를 모아 "
@@ -561,7 +671,6 @@ def main():
                         "⚠️ 상관분석에 사용할 생육 지표(잎 수·지상부 길이·지하부 길이) 열이 없어요."
                     )
                 else:
-                    # ── 상관계수 비교 막대 ───────────────────────────────
                     st.markdown("### 🔗 생육 지표와 생중량의 상관계수 비교")
                     st.info(
                         "**상관계수(r)**는 -1에서 1 사이의 값으로,  "
@@ -588,7 +697,6 @@ def main():
                         if fig_corr is not None:
                             st.plotly_chart(fig_corr, width="stretch")
 
-                    # ── 산점도 + 회귀 추세선 ─────────────────────────────
                     st.markdown("---")
                     st.markdown("### 📈 산점도 및 회귀 추세선")
                     st.info(
@@ -616,7 +724,6 @@ def main():
                             )
                             st.plotly_chart(figure, width="stretch")
 
-                    # ── 잎 수 예측 회귀식 및 R² ────────────────────────────
                     st.markdown("---")
                     st.markdown("### 🔮 잎 수를 이용한 생중량 예측")
                     if "잎 수" in growth_df.columns:
@@ -648,7 +755,6 @@ def main():
                             "⚠️ 잎 수 열이 없어 회귀 예측을 할 수 없어요."
                         )
 
-                    # ── 다운로드 버튼 ──────────────────────────────────────
                     st.markdown("---")
                     st.markdown("### 📥 생육 데이터 다운로드 (한글 깨짐 방지)")
                     if not growth_df.empty:
