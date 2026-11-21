@@ -20,7 +20,7 @@ html, body, [class*="css"] {
     unsafe_allow_html=True,
 )
 
-# ── CSV 읽기 (인코딩 처리) ─────────────────────────────────────────────────
+# ── CSV 읽기 (인코딩 처리, 한 번만 읽기) ────────────────────────────────────
 @st.cache_data
 def read_csv(file):
     if file is None:
@@ -57,12 +57,12 @@ def std_cols(df):
             rename[c] = "잎 수"
         elif "지상부" in k and "길이" in k:
             rename[c] = "지상부 길이"
+        elif "지하부" in k and "길이" in k:
+            rename[c] = "지하부 길이"
         elif "지상부" in k and ("질량" in k or "무게" in k):
             rename[c] = "지상부 질량"
         elif "지하부" in k and ("질량" in k or "무게" in k):
             rename[c] = "지하부 질량"
-        elif "지하부" in k and ("길이" in k or "길이" in c):
-            rename[c] = "지하부 길이"
         elif "개체" in k:
             rename[c] = "개체번호"
     df = df.rename(columns=rename)
@@ -95,15 +95,13 @@ def std_cols(df):
 # ── 학교명 추출 ────────────────────────────────────────────────────────────
 def extract_school_name(filename):
     base = os.path.splitext(os.path.basename(filename))[0]
-    # 밑줄 또는 공백 기준 첫 토큰
     name = base.split("_")[0].split("-")[0].strip()
-    # 숫자만 있으면 제거
     if name.isdigit():
         name = base
     return name or "우리 학교"
 
 
-# ── 공통 그래프 스타일 ─────────────────────────────────────────────────────
+# ── 공통 스타일 ────────────────────────────────────────────────────────────
 def style_figure(fig):
     fig.update_layout(
         font=dict(family="Malgun Gothic, Apple SD Gothic Neo, sans-serif"),
@@ -112,7 +110,7 @@ def style_figure(fig):
     return fig
 
 
-# ── 날짜별 온도·습도 꺾은선 그래프 ─────────────────────────────────────────
+# ── 날짜별 온도·습도 꺾은선 ─────────────────────────────────────────────────
 def make_env_line(env_df):
     if "time" not in env_df.columns:
         return None
@@ -212,7 +210,7 @@ def make_top_bottom_bar(growth_df):
         row = {"집단": label}
         for c in cols:
             v = sub[c].dropna()
-            row[c] = v.mean() if len(v) > 0 else 0
+            row[c] = v.mean() if len(v) >= 1 else 0
         return row
 
     rows = []
@@ -252,14 +250,14 @@ def make_top_bottom_bar(growth_df):
     return style_figure(fig)
 
 
-# ── 산점도 + 회귀 추세선 ────────────────────────────────────────────────────
+# ── 산점도 + 회귀 추세선 (반환값을 1개로 정리) ────────────────────────────
 def make_scatter_with_trend(x_series, y_series, x_label, y_label, color="#2c3e50"):
     df = pd.DataFrame({"x": x_series, "y": y_series}).dropna()
     if len(df) < 2:
-        return None, None, None
+        return None
     x = df["x"].values
     y = df["y"].values
-    r = np.corrcoef(x, y)[0, 1]
+    r = float(np.corrcoef(x, y)[0, 1])
     slope, intercept = np.polyfit(x, y, 1)
     xs = np.linspace(x.min(), x.max(), 100)
     ys = slope * xs + intercept
@@ -290,10 +288,12 @@ def make_scatter_with_trend(x_series, y_series, x_label, y_label, color="#2c3e50
         yaxis_title=y_label,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
     )
-    return style_figure(fig), r, (slope, intercept)
+    styled = style_figure(fig)
+    styled._trend_info = {"r": r, "slope": slope, "intercept": intercept}
+    return styled
 
 
-# ── 상관계수 비교 막대그래프 ────────────────────────────────────────────────
+# ── 상관계수 비교 막대 ─────────────────────────────────────────────────────
 def make_corr_bar(corr_list, title):
     if not corr_list:
         return None
@@ -321,7 +321,7 @@ def make_corr_bar(corr_list, title):
     return style_figure(fig)
 
 
-# ── download용 CSV 인코딩 ────────────────────────────────────────────────────
+# ── 다운로드용 CSV 인코딩 ───────────────────────────────────────────────────
 def csv_for_download(df):
     return df.to_csv(index=False).encode("utf-8-sig")
 
@@ -340,19 +340,17 @@ def main():
 
     st.sidebar.markdown("---")
     st.sidebar.header("🌿 생육 측정 항목 선택")
-    growth_metrics = []
     all_metric_names = ["잎 수", "지상부 길이", "지하부 길이", "생중량",
                         "지상부 질량", "지하부 질량"]
-    # 미리 읽기 전이므로 일단 전체 선택 가능하게 — 실제 사용 여부는 각 탭에서 확인
+    growth_metrics = []
     for m in all_metric_names:
         if st.sidebar.checkbox(m, value=True, key=f"chk_{m}"):
             growth_metrics.append(m)
 
-    # ── 데이터 로딩 ────────────────────────────────────────────────────────
+    # ── 데이터 로딩 (한 번만) ──────────────────────────────────────────────
     if env_file is not None:
         with st.spinner("환경 데이터를 읽는 중..."):
-            env_raw = read_csv(env_file)
-        env_df = std_cols(env_raw)
+            env_df = std_cols(read_csv(env_file))
         env_school = extract_school_name(env_file.name)
     else:
         env_df = pd.DataFrame()
@@ -360,8 +358,7 @@ def main():
 
     if growth_file is not None:
         with st.spinner("생육 결과 데이터를 읽는 중..."):
-            growth_raw = read_csv(growth_file)
-        growth_df = std_cols(growth_raw)
+            growth_df = std_cols(read_csv(growth_file))
         growth_school = extract_school_name(growth_file.name)
     else:
         growth_df = pd.DataFrame()
@@ -373,7 +370,7 @@ def main():
     )
 
     # ─────────────────────────────────────────────────────────────────────────
-    #  탭 1: 연구 개요 및 스마트팜 환경
+    #  탭 1
     # ─────────────────────────────────────────────────────────────────────────
     with tab1:
         try:
@@ -393,11 +390,9 @@ def main():
             if env_df.empty and growth_df.empty:
                 st.info("📎 사이드바에서 CSV 파일을 업로드하면 분석 결과가 화면에 나타나요.")
             else:
-                # 학교명 표시
                 school = env_school or growth_school or "우리 학교"
                 st.markdown(f"### 🏫 분석 대상 학교: {school}")
 
-                # 환경 데이터 요약
                 if not env_df.empty:
                     st.markdown("---")
                     st.markdown("### 🌡️ 스마트팜 환경 데이터 요약")
@@ -430,7 +425,6 @@ def main():
                     else:
                         st.info("날짜별 변화를 그릴 수 있는 데이터가 충분하지 않아요.")
 
-                # 생육 데이터 요약
                 if not growth_df.empty:
                     st.markdown("---")
                     st.markdown("### 🌿 생육 결과 데이터 요약")
@@ -453,181 +447,4 @@ def main():
                         if len(lf) >= 2:
                             st.metric("평균 잎 수", f"{lf.mean():.1f} 장")
                     if "지상부 길이" in growth_df.columns:
-                        sh = growth_df["지상부 길이"].dropna()
-                        if len(sh) >= 2:
-                            st.metric("평균 지상부 길이", f"{sh.mean():.1f} mm")
-                    if "지하부 길이" in growth_df.columns:
-                        ub = growth_df["지하부 길이"].dropna()
-                        if len(ub) >= 2:
-                            st.metric("평균 지하부 길이", f"{ub.mean():.1f} mm")
-
-        except Exception as e:
-            st.warning(f"⚠️ 이 부분은 데이터 형식 때문에 표시하지 못했어요: {e}")
-
-    # ─────────────────────────────────────────────────────────────────────────
-    #  탭 2: 개체별 생육 차이 분석
-    # ─────────────────────────────────────────────────────────────────────────
-    with tab2:
-        try:
-            if growth_df.empty:
-                st.info("📎 사이드바에서 생육 결과 CSV를 업로드하면 분석 결과가 나타나요.")
-            else:
-                # 생중량 히스토그램
-                st.markdown("### 📊 개체별 생중량 분포")
-                fig_hist = make_weight_hist(growth_df)
-                if fig_hist is not None:
-                    st.plotly_chart(fig_hist, width="stretch")
-                else:
-                    st.info("⚠️ 생중량 열이 없거나 값이 충분하지 않아 히스토그램을 그릴 수 없어요.")
-
-                # 평균·표준편차·변동계수 카드
-                st.markdown("### 📏 생육 지표별 평균·표준편차·변동계수")
-                st.info(
-                    "• **평균**: 모든 개체 값을 더해 개수로 나눈 값  "
-                    "• **표준편차**: 개체의 값이 평균에서 얼마나 흩어져 있는지 나타내는 값  "
-                    "• **변동계수(CV)**: 표준편차를 평균으로 나눈 값으로, 서로 다른 단위끼리도 비교할 수 있어요."
-                )
-
-                metric_cols_avail = [
-                    c for c in ["잎 수", "지상부 길이", "지하부 길이", "생중량"]
-                    if c in growth_df.columns
-                ]
-                if metric_cols_avail:
-                    for i in range(0, len(metric_cols_avail), 2):
-                        cols = st.columns(min(2, len(metric_cols_avail) - i))
-                        for j, c in enumerate(metric_cols_avail[i:i + 2]):
-                            s = growth_df[c].dropna()
-                            if len(s) >= 2:
-                                mean_v = s.mean()
-                                std_v = s.std()
-                                cv = (std_v / mean_v * 100) if mean_v != 0 else 0
-                                with cols[j]:
-                                    st.metric(
-                                        label=c,
-                                        value=f"{mean_v:.2f}",
-                                        delta=f"표준편차 {std_v:.2f}  |  CV {cv:.1f}%",
-                                    )
-                            else:
-                                with cols[j]:
-                                    st.info(f"⚠️ {c} 값이 충분하지 않아요.")
-                else:
-                    st.info("⚠️ 표시할 생육 지표 열이 없어요.")
-
-                # 상위 25% / 하위 25% 비교 막대그래프
-                st.markdown("### 🔬 생중량 상위 25% vs 하위 25% 비교")
-                st.info(
-                    "생중량이 무거운 상위 25% 개체와 가벼운 하위 25% 개체를 모아 "
-                    "각 생육 지표의 평균을 비교한 그래프예요."
-                )
-                fig_bar = make_top_bottom_bar(growth_df)
-                if fig_bar is not None:
-                    st.plotly_chart(fig_bar, width="stretch")
-                else:
-                    st.info("⚠️ 비교할 데이터가 충분하지 않아요. (개체 수가 너무 적거나 생중량 열이 없음)")
-
-        except Exception as e:
-            st.warning(f"⚠️ 이 부분은 데이터 형식 때문에 표시하지 못했어요: {e}")
-
-    # ─────────────────────────────────────────────────────────────────────────
-    #  탭 3: 생육 지표와 생중량의 상관관계 및 예측
-    # ─────────────────────────────────────────────────────────────────────────
-    with tab3:
-        try:
-            if growth_df.empty:
-                st.info("📎 사이드바에서 생육 결과 CSV를 업로드하면 분석 결과가 나타나요.")
-            elif "생중량" not in growth_df.columns:
-                st.info("⚠️ 생중량(g) 열이 없어 상관관계 분석을 할 수 없어요.")
-            else:
-                predictors = [
-                    c for c in ["잎 수", "지상부 길이", "지하부 길이"]
-                    if c in growth_df.columns
-                ]
-                if not predictors:
-                    st.info("⚠️ 상관분석에 사용할 생육 지표(잎 수·지상부 길이·지하부 길이) 열이 없어요.")
-                else:
-                    st.markdown("### 🔗 생육 지표와 생중량의 상관계수 비교")
-                    st.info(
-                        "**상관계수(r)**는 -1에서 1 사이의 값으로,  "
-                        "1에 가까울수록 함께 증가하고, -1에 가까울수록 함께 감소하며,  "
-                        "0에 가까우면 관계가 거의 없다는 뜻이에요."
-                    )
-
-                    corr_results = []
-                    for p in predictors:
-                        x = growth_df[p].dropna()
-                        y = growth_df.loc[x.index, "생중량"].dropna()
-                        if len(x) >= 2 and len(y) >= 2:
-                            common = x.index.intersection(y.index)
-                            if len(common) >= 2:
-                                r = np.corrcoef(x.loc[common], y.loc[common])[0, 1]
-                                corr_results.append((p, r))
-
-                    if corr_results:
-                        fig_corr = make_corr_bar(corr_results, "생육 지표 vs 생중량 상관계수 (r)")
-                        if fig_corr is not None:
-                            st.plotly_chart(fig_corr, width="stretch")
-
-                        st.markdown("---")
-                        st.markdown("### 📈 산점도 및 회귀 추세선")
-                        st.info(
-                            "각 생육 지표와 생중량의 관계를 점과 추세선으로 나타낸 그래프예요.  "
-                            "**추세선**은 np.polyfit으로 구한 직선이에요 (px.scatter의 trendline 인자는 statsmodels가 필요해 사용하지 않았어요)."
-                        )
-
-                        for p, r in corr_results:
-                            common = growth_df[p].dropna().index.intersection(
-                                growth_df["생중량"].dropna().index
-                            )
-                            if len(common) < 2:
-                                continue
-                            x_s = growth_df.loc[common, p]
-                            y_s = growth_df.loc[common, "생중량"]
-                            fig_scatter, r_val, (slope, intercept) = make_scatter_with_trend(
-                                x_s, y_s, p, "생중량 (g)", color="#2c3e50"
-                            )
-                            if fig_scatter is not None:
-                                st.markdown(f"#### {p} vs 생중량  (상관계수 r = {r_val:.3f})")
-                                st.plotly_chart(fig_scatter, width="stretch")
-
-                    # 잎 수 예측 회귀식 및 R²
-                    st.markdown("---")
-                    st.markdown("### 🔮 잎 수를 이용한 생중량 예측")
-                    if "잎 수" in growth_df.columns:
-                        common = growth_df["잎 수"].dropna().index.intersection(
-                            growth_df["생중량"].dropna().index
-                        )
-                        if len(common) >= 2:
-                            x_l = growth_df.loc[common, "잎 수"]
-                            y_l = growth_df.loc[common, "생중량"]
-                            slope_l, intercept_l = np.polyfit(x_l, y_l, 1)
-                            y_pred = slope_l * x_l + intercept_l
-                            ss_res = ((y_l - y_pred) ** 2).sum()
-                            ss_tot = ((y_l - y_l.mean()) ** 2).sum()
-                            r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
-                            st.success(
-                                f"**예측 회귀식:**  생중량(g) = {slope_l:.3f} × 잎 수 + {intercept_l:.3f}\n\n"
-                                f"**결정계수 (R²):** {r2:.3f}\n\n"
-                                f"R²는 0~1 사이의 값으로, 1에 가까울수록 잎 수로 생중량을 잘 예측할 수 있다는 뜻이에요."
-                            )
-                        else:
-                            st.info("⚠️ 잎 수와 생중량 값이 충분하지 않아 회귀식을 구할 수 없어요.")
-                    else:
-                        st.info("⚠️ 잎 수 열이 없어 회귀 예측을 할 수 없어요.")
-
-                    # 다운로드 버튼
-                    st.markdown("---")
-                    st.markdown("### 📥 생육 데이터 다운로드 (한글 깨짐 방지)")
-                    if not growth_df.empty:
-                        st.download_button(
-                            label="생육 결과 CSV 다운로드",
-                            data=csv_for_download(growth_df),
-                            file_name="생육결과_가공.csv",
-                            mime="text/csv",
-                        )
-
-        except Exception as e:
-            st.warning(f"⚠️ 이 부분은 데이터 형식 때문에 표시하지 못했어요: {e}")
-
-
-if __name__ == "__main__":
-    main()
+                        sh = growth_df["
